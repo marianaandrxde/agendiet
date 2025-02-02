@@ -47,7 +47,7 @@ class _UpdateWeightScreenState extends State<UpdateWeightScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Peso registrado com sucesso!')),
           );
-          Navigator.pop(context); // Voltar para a tela anterior
+          Navigator.pop(context, true);  // Passando true ao voltar
         } else {
           // Se a resposta for diferente de 200, mostra um erro
           ScaffoldMessenger.of(context).showSnackBar(

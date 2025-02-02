@@ -1,12 +1,39 @@
+import 'dart:convert';
 import 'package:agendiet/views/meta_view.dart';
 import 'package:flutter/material.dart';
 import 'package:agendiet/views/update_weight_view.dart';
+import 'package:http/http.dart' as http;
 
-class UserProfileView extends StatelessWidget {
+class UserProfileView extends StatefulWidget {
   final String userName;
   final int userId;
 
   const UserProfileView({super.key, required this.userName, required this.userId});
+
+  @override
+  _UserProfileViewState createState() => _UserProfileViewState();
+}
+
+class _UserProfileViewState extends State<UserProfileView> {
+  late Future<String> _latestWeight;
+
+  @override
+  void initState() {
+    super.initState();
+    _latestWeight = fetchLatestWeight(widget.userId);
+  }
+
+  Future<String> fetchLatestWeight(int userId) async {
+    final url = Uri.parse('http://10.0.2.2:8000/pesos/latest/$userId');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return data['peso'].toString();  // Considerando que o campo peso está na resposta
+    } else {
+      throw Exception('Falha ao carregar peso');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +48,7 @@ class UserProfileView extends StatelessWidget {
                 radius: 50,
                 backgroundColor: Colors.green.shade400,
                 child: Text(
-                  userName.isNotEmpty ? userName[0] : '',
+                  widget.userName.isNotEmpty ? widget.userName[0] : '',
                   style: const TextStyle(
                     fontSize: 40,
                     color: Colors.white,
@@ -31,12 +58,30 @@ class UserProfileView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                userName,
+                widget.userName,
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.black,
                 ),
+              ),
+              const SizedBox(height: 32),
+              FutureBuilder<String>(
+                future: _latestWeight,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const CircularProgressIndicator();
+                  } else if (snapshot.hasError) {
+                    return const Text('Erro ao carregar peso');
+                  } else if (snapshot.hasData) {
+                    return Text(
+                      'Peso mais recente: ${snapshot.data} kg',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    );
+                  } else {
+                    return const Text('Nenhum peso registrado');
+                  }
+                },
               ),
               const SizedBox(height: 32),
               GridView.count(
@@ -48,13 +93,19 @@ class UserProfileView extends StatelessWidget {
                 children: <Widget>[
                   _buildQuadrant(
                     context, 'Atualize seu peso', Icons.accessibility,
-                    onTap: () {
-                      Navigator.push(
+                    onTap: () async {
+                      final result = await Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => UpdateWeightScreen(userId: userId),
+                          builder: (context) => UpdateWeightScreen(userId: widget.userId),
                         ),
                       );
+                      if (result == true) {
+                        setState(() {
+                          // Atualiza o peso após retornar da tela de atualização
+                          _latestWeight = fetchLatestWeight(widget.userId);
+                        });
+                      }
                     },
                   ),
                   _buildQuadrant(
@@ -69,7 +120,7 @@ class UserProfileView extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => EstabelecerMetaView(userId: userId),
+                          builder: (context) => EstabelecerMetaView(userId: widget.userId),
                         ),
                       );
                     },
@@ -97,7 +148,7 @@ class UserProfileView extends StatelessWidget {
         ],
       ),
       child: InkWell(
-        onTap: onTap ?? () {}, 
+        onTap: onTap ?? () {},
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
