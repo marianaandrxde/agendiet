@@ -68,7 +68,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
 
       if (response.statusCode == 200) {
         print('Plano Alimentar registrado com sucesso!');
-        Navigator.pop(context);
+        Navigator.pop(context, true);
       } else {
         print('Erro ao salvar plano alimentar');
       }
