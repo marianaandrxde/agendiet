@@ -17,8 +17,18 @@ class _AddMealScreenState extends State<AddMealScreen> {
   late TextEditingController _nomeController;
   late TextEditingController _tagController;
   late TextEditingController _descricaoController;
+  late TextEditingController _horarioController;
+  String? _diaSelecionado;
 
-  String? _periodoDoDia;
+  final List<String> _diasDaSemana = [
+    'Segunda-feira',
+    'Terça-feira',
+    'Quarta-feira',
+    'Quinta-feira',
+    'Sexta-feira',
+    'Sábado',
+    'Domingo'
+  ];
 
   @override
   void initState() {
@@ -26,6 +36,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
     _nomeController = TextEditingController();
     _tagController = TextEditingController();
     _descricaoController = TextEditingController();
+    _horarioController = TextEditingController();
   }
 
   @override
@@ -33,33 +44,31 @@ class _AddMealScreenState extends State<AddMealScreen> {
     _nomeController.dispose();
     _tagController.dispose();
     _descricaoController.dispose();
+    _horarioController.dispose();
     super.dispose();
   }
 
   Future<void> _saveMeal() async {
     if (_formKey.currentState!.validate()) {
-      final url = Uri.parse(
-          'http://10.0.2.2:8000/planos-alimentares/registrar/${widget.userId}');
-
-      // Mapear o período para os valores esperados pela API
-      String periodoApi = '';
-      if (_periodoDoDia == 'Manhã') {
-        periodoApi = 'M';
-      } else if (_periodoDoDia == 'Tarde') {
-        periodoApi = 'T';
-      } else if (_periodoDoDia == 'Noite') {
-        periodoApi = 'N';
+      if (_diaSelecionado == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Por favor, selecione um dia.')),
+        );
+        return;
       }
+
+      final url = Uri.parse('http://10.0.2.2:8000/planos-alimentares/registrar/${widget.userId}');
 
       final response = await http.post(
         url,
         body: json.encode({
           'nome': _nomeController.text,
-          'id_usuario': widget.userId, // Pegar o userId diretamente
+          'id_usuario': widget.userId,
           'id_nutricionista': 1, // Preencha com o ID do nutricionista, se necessário
           'tag': _tagController.text,
           'descricao': _descricaoController.text,
-          'periodoDoDia': periodoApi,
+          'horario': _horarioController.text,
+          'dia': _diaSelecionado, // Dia selecionado
         }),
         headers: {
           'Content-Type': 'application/json',
@@ -85,8 +94,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
         centerTitle: true,
         title: const Text(
           'Adicionar refeição',
-          style: TextStyle(
-              color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
@@ -133,32 +141,6 @@ class _AddMealScreenState extends State<AddMealScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _periodoDoDia,
-                decoration: const InputDecoration(
-                  labelText: 'Período do Dia',
-                  fillColor: Colors.white,
-                  filled: true,
-                ),
-                items: ['Manhã', 'Tarde', 'Noite']
-                    .map((periodo) => DropdownMenuItem<String>(
-                          value: periodo,
-                          child: Text(periodo),
-                        ))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _periodoDoDia = value;
-                  });
-                },
-                validator: (value) {
-                  if (value == null) {
-                    return 'Selecione o período do dia';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
               TextFormField(
                 controller: _descricaoController,
                 decoration: const InputDecoration(
@@ -170,6 +152,48 @@ class _AddMealScreenState extends State<AddMealScreen> {
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'A descrição é obrigatória';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _horarioController,
+                decoration: const InputDecoration(
+                  labelText: 'Horário',
+                  hintText: 'Digite o horário (ex: 12:00)',
+                  fillColor: Colors.white,
+                  filled: true,
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'O horário é obrigatório';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _diaSelecionado,
+                decoration: const InputDecoration(
+                  labelText: 'Dia',
+                  fillColor: Colors.white,
+                  filled: true,
+                ),
+                items: _diasDaSemana.map((String dia) {
+                  return DropdownMenuItem<String>(
+                    value: dia,
+                    child: Text(dia),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _diaSelecionado = newValue;
+                  });
+                },
+                validator: (value) {
+                  if (value == null) {
+                    return 'Por favor, selecione um dia';
                   }
                   return null;
                 },

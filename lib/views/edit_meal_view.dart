@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';  // Para converter a resposta JSON
+import 'dart:convert';
 
 class EditMealScreen extends StatefulWidget {
-  final Map<String, dynamic> refeicao;  // Alterado para Map<String, dynamic>
+  final Map<String, dynamic> refeicao;
 
   const EditMealScreen({super.key, required this.refeicao});
 
@@ -17,8 +17,18 @@ class _EditMealScreenState extends State<EditMealScreen> {
   late TextEditingController _nomeController;
   late TextEditingController _tagController;
   late TextEditingController _descricaoController;
+  late TextEditingController _horarioController;
+  String? _diaSelecionado;
 
-  String? _periodoDoDia;
+  final List<String> _diasDaSemana = [
+    'Segunda-feira',
+    'Terça-feira',
+    'Quarta-feira',
+    'Quinta-feira',
+    'Sexta-feira',
+    'Sábado',
+    'Domingo'
+  ];
 
   @override
   void initState() {
@@ -26,39 +36,48 @@ class _EditMealScreenState extends State<EditMealScreen> {
     _nomeController = TextEditingController(text: widget.refeicao['nome']);
     _tagController = TextEditingController(text: widget.refeicao['tag']);
     _descricaoController = TextEditingController(text: widget.refeicao['descricao']);
-    _periodoDoDia = widget.refeicao['periodoDoDia'];  // Adaptação para o mapa
+    _horarioController = TextEditingController(text: widget.refeicao['horario']);
+    _diaSelecionado = widget.refeicao['dia'];
   }
 
-  // Função para enviar a atualização do plano alimentar ao backend
-Future<void> _updateMeal() async {
-  final url = Uri.parse('http://10.0.2.2:8000/planos-alimentares/update/${widget.refeicao['id']}');
-  final response = await http.post(
-    url,
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({
-      'nome': _nomeController.text,
-      'tag': _tagController.text,
-      'periodoDoDia': _periodoDoDia!,
-      'descricao': _descricaoController.text,
-    }),
-  );
+  Future<void> _updateMeal() async {
+    final id = widget.refeicao['id'];
+    if (id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro: ID do plano alimentar não encontrado')),
+      );
+      return;
+    }
 
-  if (response.statusCode == 200) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Plano Alimentar atualizado com sucesso!')),
+    final url = Uri.parse('http://10.0.2.2:8000/planos-alimentares/update/$id');
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'nome': _nomeController.text,
+        'tag': _tagController.text,
+        'horario': _horarioController.text,
+        'dia': _diaSelecionado,
+        'descricao': _descricaoController.text,
+      }),
     );
-    Navigator.pop(context, "updated"); // Retorna "updated" ao fechar a tela
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Erro: ${response.statusCode}')),
-    );
+
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Plano Alimentar atualizado com sucesso!')),
+      );
+      Navigator.pop(context, "updated");
+    } else {
+      print('Erro ao atualizar plano alimentar: ${response.body}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro: ${response.statusCode}')),
+      );
+    }
   }
-}
-
 
   void _saveMeal() {
     if (_formKey.currentState!.validate()) {
-      _updateMeal();  // Chama a função que envia a atualização para o servidor
+      _updateMeal();
     }
   }
 
@@ -70,10 +89,9 @@ Future<void> _updateMeal() async {
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        title: Text(
+        title: const Text(
           'Editar Alimento',
-          style: TextStyle(
-              color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
@@ -120,27 +138,43 @@ Future<void> _updateMeal() async {
                 },
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _periodoDoDia,
+              TextFormField(
+                controller: _horarioController,
                 decoration: const InputDecoration(
-                  labelText: 'Período do Dia',
+                  labelText: 'Horário',
+                  hintText: 'Digite o horário (ex: 12:00)',
                   fillColor: Colors.white,
                   filled: true,
                 ),
-                items: ['Manhã', 'Tarde', 'Noite']
-                    .map((periodo) => DropdownMenuItem<String>(
-                          value: periodo,
-                          child: Text(periodo),
-                        ))
-                    .toList(),
-                onChanged: (value) {
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'O horário é obrigatório';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _diaSelecionado,
+                decoration: const InputDecoration(
+                  labelText: 'Dia',
+                  fillColor: Colors.white,
+                  filled: true,
+                ),
+                items: _diasDaSemana.map((String dia) {
+                  return DropdownMenuItem<String>(
+                    value: dia,
+                    child: Text(dia),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
                   setState(() {
-                    _periodoDoDia = value;
+                    _diaSelecionado = newValue;
                   });
                 },
                 validator: (value) {
                   if (value == null) {
-                    return 'Selecione o período do dia';
+                    return 'Por favor, selecione um dia';
                   }
                   return null;
                 },
@@ -173,11 +207,7 @@ Future<void> _updateMeal() async {
                 ),
                 child: const Text(
                   'Salvar',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
               ),
             ],
