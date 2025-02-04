@@ -39,6 +39,10 @@ class MedicCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Adicionando logs para depuração com as chaves corretas
+    print('MedicCard - Horário: ${medicacao['horario_inicio']}');
+    print('MedicCard - Nome: ${medicacao['nome']}');
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(vertical: 4.0),
@@ -51,7 +55,7 @@ class MedicCard extends StatelessWidget {
             color: Colors.black12,
             blurRadius: 4,
             spreadRadius: 1,
-            offset: Offset(1, 2),
+            offset: const Offset(1, 2),
           ),
         ],
       ),
@@ -61,19 +65,19 @@ class MedicCard extends StatelessWidget {
           Expanded(
             child: Row(
               children: [
-                Icon(Icons.access_time, color: Colors.blueGrey),
+                const Icon(Icons.access_time, color: Colors.blueGrey),
                 const SizedBox(width: 4),
                 Text(
-                  medicacao['horario'] ?? '00:00',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  medicacao['horario_inicio'] ?? '00:00',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(width: 16),
-                Icon(Icons.medical_services, color: Colors.orange),
+                const Icon(Icons.medical_services, color: Colors.orange),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    medicacao['descricao'] ?? 'Sem descrição',
-                    style: TextStyle(fontSize: 16),
+                    medicacao['nome'] ?? 'Sem nome',
+                    style: const TextStyle(fontSize: 16),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),

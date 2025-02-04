@@ -3,8 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:agendiet/widgets/meal_card_widget.dart';
 import 'package:agendiet/views/add_meal_view.dart';
-import 'package:agendiet/views/add_medic_view.dart'; // Nova tela para adicionar medicamentos
-import 'package:agendiet/views/edit_medic.view.dart'; // Tela de edição de medicamentos
+import 'package:agendiet/views/add_medic_view.dart'; 
 import 'package:agendiet/widgets/medic_card_widget.dart';
 
 class MealScheduleView extends StatefulWidget {
@@ -23,7 +22,7 @@ class _MealScheduleViewState extends State<MealScheduleView> {
   ];
 
   Map<String, List<Map<String, dynamic>>> _refeicoesPorDia = {};
-  Map<String, List<Map<String, dynamic>>> _medicacoesPorDia = {};
+  List<Map<String, dynamic>> _medicacoes = [];
   Map<String, bool> _isExpanded = {};
   String? _diversificacaoMensagem;
   IconData? _mensagemIcone;
@@ -35,11 +34,11 @@ class _MealScheduleViewState extends State<MealScheduleView> {
       _isExpanded[dia] = false;
       _fetchDadosPorDia(dia);
     }
+    _fetchMedicacoes();
   }
 
   Future<void> _fetchDadosPorDia(String dia) async {
     await _fetchRefeicoesPorDia(dia);
-    await _fetchMedicacoes();
     _verificarDiversificacao();
   }
 
@@ -64,11 +63,11 @@ class _MealScheduleViewState extends State<MealScheduleView> {
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       setState(() {
-        _medicacoesPorDia = {"todos": data.map((item) => item as Map<String, dynamic>).toList()};
+        _medicacoes = data.map((item) => item as Map<String, dynamic>).toList();
       });
     } else {
       setState(() {
-        _medicacoesPorDia = {"todos": []};
+        _medicacoes = [];
       });
     }
   }
@@ -110,7 +109,7 @@ class _MealScheduleViewState extends State<MealScheduleView> {
 
     if (response.statusCode == 200) {
       setState(() {
-        _medicacoesPorDia["todos"] = _medicacoesPorDia["todos"]!.where((medicacao) => medicacao['id'] != id).toList();
+        _medicacoes = _medicacoes.where((medicacao) => medicacao['id_medicacao'] != id).toList();
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Medicação excluída com sucesso!')),
@@ -126,18 +125,8 @@ class _MealScheduleViewState extends State<MealScheduleView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        title: const Text(
-          'Agenda de Saúde',
-          style: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-      ),
       body: Column(
         children: [
-          // Exibe a mensagem de diversificação no topo
           if (_diversificacaoMensagem != null)
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -151,7 +140,6 @@ class _MealScheduleViewState extends State<MealScheduleView> {
                 ],
               ),
             ),
-          // Exibe a lista de dias
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(16.0),
@@ -182,7 +170,7 @@ class _MealScheduleViewState extends State<MealScheduleView> {
                           ),
                         );
                       }).toList(),
-                      ...(_medicacoesPorDia["todos"] ?? []).map((medicacao) {
+                      ..._medicacoes.map((medicacao) {
                         return Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8.0),
                           child: MedicCard(
@@ -191,7 +179,7 @@ class _MealScheduleViewState extends State<MealScheduleView> {
                           ),
                         );
                       }).toList(),
-                      if ((_refeicoesPorDia[dia]?.isEmpty ?? true) && (_medicacoesPorDia[dia]?.isEmpty ?? true))
+                      if ((_refeicoesPorDia[dia]?.isEmpty ?? true) && _medicacoes.isEmpty)
                         const Padding(
                           padding: EdgeInsets.all(16.0),
                           child: Text(

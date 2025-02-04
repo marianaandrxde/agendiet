@@ -29,7 +29,7 @@ class _AddMedicScreenState extends State<AddMedicScreen> {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
+      firstDate: DateTime(2000),
       lastDate: DateTime(2101),
     );
     if (picked != null) {
@@ -133,28 +133,11 @@ class _AddMedicScreenState extends State<AddMedicScreen> {
                 ),
                 inputFormatters: [_intervaloFormatter],
                 validator: (value) {
-                  if (value!.isEmpty) {
-                    return "Informe o intervalo";
-                  } else if (int.tryParse(value) == null) {
-                    return "Informe um número válido";
+                  if (value == null || value.isEmpty) {
+                    return "Informe o intervalo de doses";
                   }
                   return null;
                 },
-              ),
-              
-              // Horário de início com TimePicker
-              GestureDetector(
-                onTap: () => _selecionarHorario(context),
-                child: AbsorbPointer(
-                  child: TextFormField(
-                    controller: TextEditingController(text: _horarioInicio),
-                    decoration: const InputDecoration(
-                      labelText: "Horário inicial (HH:MM)",
-                      prefixIcon: Icon(Icons.access_alarm),
-                    ),
-                    validator: (value) => value!.isEmpty ? "Informe o horário" : null,
-                  ),
-                ),
               ),
 
               // Data de Início
@@ -190,10 +173,6 @@ class _AddMedicScreenState extends State<AddMedicScreen> {
                   : ElevatedButton(
                       onPressed: _salvarMedicacao,
                       child: const Text("Salvar"),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
                     ),
             ],
           ),
