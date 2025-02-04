@@ -13,7 +13,15 @@ class MealCard extends StatelessWidget {
   });
 
   Future<void> _deleteMeal(BuildContext context) async {
-    final url = Uri.parse('http://10.0.2.2:8000/planos-alimentares/delete/${refeicao['id']}');
+    final id = refeicao['id'];
+    if (id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro: ID do plano alimentar não encontrado')),
+      );
+      return;
+    }
+
+    final url = Uri.parse('http://10.0.2.2:8000/planos-alimentares/delete/$id');
     final response = await http.delete(url);
 
     if (response.statusCode == 200) {
@@ -22,6 +30,7 @@ class MealCard extends StatelessWidget {
       );
       onUpdate();
     } else {
+      print('Erro ao excluir refeição: ${response.body}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao excluir: ${response.statusCode}')),
       );
@@ -49,23 +58,27 @@ class MealCard extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Icon(Icons.access_time, color: Colors.blueGrey),
-              const SizedBox(width: 4),
-              Text(
-                refeicao['horario'] ?? '00:00',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(width: 16),
-              Icon(Icons.restaurant, color: Colors.orange),
-              const SizedBox(width: 4),
-              Text(
-                refeicao['descricao'] ?? 'Sem descrição',
-                style: TextStyle(fontSize: 16),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+          Expanded(
+            child: Row(
+              children: [
+                Icon(Icons.access_time, color: Colors.blueGrey),
+                const SizedBox(width: 4),
+                Text(
+                  refeicao['horario'] ?? '00:00',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(width: 16),
+                Icon(Icons.restaurant, color: Colors.orange),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    refeicao['descricao'] ?? 'Sem descrição',
+                    style: TextStyle(fontSize: 16),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           ),
           Row(
             children: [

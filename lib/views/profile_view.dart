@@ -3,6 +3,7 @@ import 'package:agendiet/views/meta_view.dart';
 import 'package:flutter/material.dart';
 import 'package:agendiet/views/update_weight_view.dart';
 import 'package:http/http.dart' as http;
+import 'package:agendiet/views/weight_progress_view.dart';
 
 class UserProfileView extends StatefulWidget {
   final String userName;
@@ -111,7 +112,10 @@ class _UserProfileViewState extends State<UserProfileView> {
                   _buildQuadrant(
                     context, 'Visualize seu progresso', Icons.show_chart,
                     onTap: () {
-                      print('Visualizar progresso');
+                      Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ProgressView(userId: widget.userId)),
+                      );
                     },
                   ),
                   _buildQuadrant(

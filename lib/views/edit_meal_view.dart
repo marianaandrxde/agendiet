@@ -17,8 +17,9 @@ class _EditMealScreenState extends State<EditMealScreen> {
   late TextEditingController _nomeController;
   late TextEditingController _tagController;
   late TextEditingController _descricaoController;
-  late TextEditingController _horarioController;
+  TimeOfDay? _horarioSelecionado;
   String? _diaSelecionado;
+  String? _tagSelecionada;  // Variável para armazenar a tag selecionada
 
   final List<String> _diasDaSemana = [
     'Segunda-feira',
@@ -30,14 +31,55 @@ class _EditMealScreenState extends State<EditMealScreen> {
     'Domingo'
   ];
 
+  final List<String> _tagsPreexistentes = [
+    'Carboidrato',
+    'Proteína',
+    'Gordura',
+    'Fibra',
+    'Vegetariano',
+    'Vegano',
+    'Sem glúten',
+    'Sem lactose',
+  ];
+
   @override
   void initState() {
     super.initState();
     _nomeController = TextEditingController(text: widget.refeicao['nome']);
-    _tagController = TextEditingController(text: widget.refeicao['tag']);
+    _tagSelecionada = widget.refeicao['tag'];  // Inicializa com a tag da refeição
     _descricaoController = TextEditingController(text: widget.refeicao['descricao']);
-    _horarioController = TextEditingController(text: widget.refeicao['horario']);
-    _diaSelecionado = widget.refeicao['dia'];
+    _horarioSelecionado = _parseHorario(widget.refeicao['horario']);
+
+    // Garantir que o dia selecionado esteja na lista de dias da semana
+    if (_diasDaSemana.contains(widget.refeicao['dia'])) {
+      _diaSelecionado = widget.refeicao['dia'];
+    } else {
+      _diaSelecionado = _diasDaSemana.first; // Define um valor padrão
+    }
+  }
+
+  TimeOfDay? _parseHorario(String? horario) {
+    if (horario == null || !horario.contains(':')) return null;
+    final partes = horario.split(':');
+    final int? horas = int.tryParse(partes[0]);
+    final int? minutos = int.tryParse(partes[1]);
+    if (horas != null && minutos != null) {
+      return TimeOfDay(hour: horas, minute: minutos);
+    }
+    return null;
+  }
+
+  Future<void> _selecionarHorario() async {
+    final TimeOfDay? novoHorario = await showTimePicker(
+      context: context,
+      initialTime: _horarioSelecionado ?? TimeOfDay.now(),
+    );
+
+    if (novoHorario != null) {
+      setState(() {
+        _horarioSelecionado = novoHorario;
+      });
+    }
   }
 
   Future<void> _updateMeal() async {
@@ -55,8 +97,10 @@ class _EditMealScreenState extends State<EditMealScreen> {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'nome': _nomeController.text,
-        'tag': _tagController.text,
-        'horario': _horarioController.text,
+        'tag': _tagSelecionada,  // Utiliza a tag selecionada
+        'horario': _horarioSelecionado != null
+            ? '${_horarioSelecionado!.hour.toString().padLeft(2, '0')}:${_horarioSelecionado!.minute.toString().padLeft(2, '0')}'
+            : null,
         'dia': _diaSelecionado,
         'descricao': _descricaoController.text,
       }),
@@ -122,36 +166,57 @@ class _EditMealScreenState extends State<EditMealScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _tagController,
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _tagSelecionada,  // Usa a tag selecionada
                 decoration: const InputDecoration(
                   labelText: 'Tag',
-                  hintText: 'Digite a tag (ex: Carboidrato, Proteína)',
                   fillColor: Colors.white,
                   filled: true,
                 ),
+                items: _tagsPreexistentes.map((String tag) {
+                  return DropdownMenuItem<String>(
+                    value: tag,
+                    child: Text(tag),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _tagSelecionada = newValue;
+                  });
+                },
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'A tag é obrigatória';
+                  if (value == null) {
+                    return 'Por favor, selecione uma tag';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _horarioController,
-                decoration: const InputDecoration(
-                  labelText: 'Horário',
-                  hintText: 'Digite o horário (ex: 12:00)',
-                  fillColor: Colors.white,
-                  filled: true,
+              GestureDetector(
+                onTap: _selecionarHorario,
+                child: AbsorbPointer(
+                  child: TextFormField(
+                    decoration: InputDecoration(
+                      labelText: 'Horário',
+                      hintText: 'Selecione o horário',
+                      suffixIcon: const Icon(Icons.access_time),
+                      fillColor: Colors.white,
+                      filled: true,
+                    ),
+                    controller: TextEditingController(
+                      text: _horarioSelecionado != null
+                          ? "${_horarioSelecionado!.hour.toString().padLeft(2, '0')}:${_horarioSelecionado!.minute.toString().padLeft(2, '0')}"
+                          : "",
+                    ),
+                    validator: (value) {
+                      if (_horarioSelecionado == null) {
+                        return 'O horário é obrigatório';
+                      }
+                      return null;
+                    },
+                  ),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'O horário é obrigatório';
-                  }
-                  return null;
-                },
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(

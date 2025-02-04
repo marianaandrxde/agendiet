@@ -27,7 +27,7 @@ class _EstabelecerMetaViewState extends State<EstabelecerMetaView> {
   // Função para buscar as metas de peso do usuário
   Future<void> _fetchMetaPeso() async {
     final response = await http.get(
-      Uri.parse('http://localhost:8000/metas-peso/get/${widget.userId}'),
+      Uri.parse('http://10.0.2.2:8000/metas-peso/get/${widget.userId}'),
     );
 
     if (response.statusCode == 200) {

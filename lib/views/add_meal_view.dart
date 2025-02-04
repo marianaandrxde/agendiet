@@ -15,10 +15,21 @@ class _AddMealScreenState extends State<AddMealScreen> {
   final _formKey = GlobalKey<FormState>();
 
   late TextEditingController _nomeController;
-  late TextEditingController _tagController;
   late TextEditingController _descricaoController;
-  late TextEditingController _horarioController;
+  String? _tagSelecionada;
   String? _diaSelecionado;
+  TimeOfDay? _horarioSelecionado;
+
+  final List<String> _tagsPreexistentes = [
+    'Carboidrato',
+    'Proteína',
+    'Gordura',
+    'Fibra',
+    'Vegetariano',
+    'Vegano',
+    'Sem glúten',
+    'Sem lactose',
+  ];
 
   final List<String> _diasDaSemana = [
     'Segunda-feira',
@@ -34,25 +45,21 @@ class _AddMealScreenState extends State<AddMealScreen> {
   void initState() {
     super.initState();
     _nomeController = TextEditingController();
-    _tagController = TextEditingController();
     _descricaoController = TextEditingController();
-    _horarioController = TextEditingController();
   }
 
   @override
   void dispose() {
     _nomeController.dispose();
-    _tagController.dispose();
     _descricaoController.dispose();
-    _horarioController.dispose();
     super.dispose();
   }
 
   Future<void> _saveMeal() async {
     if (_formKey.currentState!.validate()) {
-      if (_diaSelecionado == null) {
+      if (_diaSelecionado == null || _horarioSelecionado == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Por favor, selecione um dia.')),
+          const SnackBar(content: Text('Por favor, selecione um dia e um horário.')),
         );
         return;
       }
@@ -65,9 +72,9 @@ class _AddMealScreenState extends State<AddMealScreen> {
           'nome': _nomeController.text,
           'id_usuario': widget.userId,
           'id_nutricionista': 1, // Preencha com o ID do nutricionista, se necessário
-          'tag': _tagController.text,
+          'tag': _tagSelecionada, // Tag selecionada
           'descricao': _descricaoController.text,
-          'horario': _horarioController.text,
+          'horario': "${_horarioSelecionado!.hour.toString().padLeft(2, '0')}:${_horarioSelecionado!.minute.toString().padLeft(2, '0')}",
           'dia': _diaSelecionado, // Dia selecionado
         }),
         headers: {
@@ -81,6 +88,19 @@ class _AddMealScreenState extends State<AddMealScreen> {
       } else {
         print('Erro ao salvar plano alimentar');
       }
+    }
+  }
+
+  Future<void> _selecionarHorario() async {
+    TimeOfDay? horarioEscolhido = await showTimePicker(
+      context: context,
+      initialTime: _horarioSelecionado ?? TimeOfDay.now(),
+    );
+
+    if (horarioEscolhido != null) {
+      setState(() {
+        _horarioSelecionado = horarioEscolhido;
+      });
     }
   }
 
@@ -125,17 +145,27 @@ class _AddMealScreenState extends State<AddMealScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _tagController,
+              DropdownButtonFormField<String>(
+                value: _tagSelecionada,
                 decoration: const InputDecoration(
                   labelText: 'Tag',
-                  hintText: 'Digite a tag (ex: Carboidrato, Proteína)',
                   fillColor: Colors.white,
                   filled: true,
                 ),
+                items: _tagsPreexistentes.map((String tag) {
+                  return DropdownMenuItem<String>(
+                    value: tag,
+                    child: Text(tag),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _tagSelecionada = newValue;
+                  });
+                },
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'A tag é obrigatória';
+                  if (value == null) {
+                    return 'Por favor, selecione uma tag';
                   }
                   return null;
                 },
@@ -157,21 +187,32 @@ class _AddMealScreenState extends State<AddMealScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _horarioController,
-                decoration: const InputDecoration(
-                  labelText: 'Horário',
-                  hintText: 'Digite o horário (ex: 12:00)',
-                  fillColor: Colors.white,
-                  filled: true,
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'O horário é obrigatório';
-                  }
-                  return null;
-                },
-              ),
+              GestureDetector(
+  onTap: _selecionarHorario,
+  child: AbsorbPointer(
+    child: TextFormField(
+      decoration: InputDecoration(
+        labelText: 'Horário',
+        hintText: 'Selecione o horário',
+        suffixIcon: const Icon(Icons.access_time),
+        fillColor: Colors.white,
+        filled: true,
+      ),
+      controller: TextEditingController(
+        text: _horarioSelecionado != null
+            ? "${_horarioSelecionado!.hour.toString().padLeft(2, '0')}:${_horarioSelecionado!.minute.toString().padLeft(2, '0')}"
+            : "",
+      ),
+      validator: (value) {
+        if (_horarioSelecionado == null) {
+          return 'O horário é obrigatório';
+        }
+        return null;
+      },
+    ),
+  ),
+),
+
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: _diaSelecionado,
